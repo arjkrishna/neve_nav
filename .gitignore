@@ -138,3 +138,4 @@ dmypy.json
 training_results/
 eve-training-fixed.tar
 *.tar
+training_scripts/
