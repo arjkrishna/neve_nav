@@ -136,3 +136,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 training_results/
+eve-training-fixed.tar
+*.tar
