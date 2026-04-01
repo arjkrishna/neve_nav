@@ -1,0 +1,799 @@
+SUMMARY and MOTIVATION
+I want to include the centerlines as part of the state; as I recall code uses BFS (Dijktra's algorithm) to find the shortest path comprising of centerlines when computing reward to find the pathdelta, I want a formulation that comprises of the centerpoints of all the centerlines along with the formulation that which centers of centerlines are along the desired path (path to target) and which are not and then accordingly make changes to the reward formulation of how much the guidewire is inserted in the main centerlines (main base aorta centerline -- centerline where it all starts which has to be part of path to target) and how close it is to the remain centerlines' centers that are a part of the path to the target
+
+SUMMARY
+
+basically trying to (1) expose the vessel centerlines explicitly to the policy and (2) shape the reward so the agent is rewarded for staying on / progressing along the root→target “main route” (starting from the main trunk/aorta), not just “getting closer to the target”.
+
+Below is a formulation + the concrete places in your current code where you’d hook it in.
+
+0) What the code currently does (important correction)
+Current “shortest path” for reward
+
+The reward term you’re referring to is PathLengthDelta (eve/eve/reward/pathlengthdelta.py).
+
+It uses pathfinder.path_length, which comes from BruteForceBFS (eve/eve/pathfinder/bruteforcebfs.py).
+
+Key detail: despite the name, this pathfinder is not Dijkstra right now. It builds edge lengths, but the path search itself is unweighted BFS and it uses the first BFS path it finds (fewest branching nodes), not necessarily the smallest-length route.
+
+So if you want “main centerline route to target” in a principled way, you’ll likely want to implement weighted shortest path (Dijkstra) on that same branching-point graph.
+
+1) What you want to add to the state
+
+You want:
+
+centerpoints of all centerlines (i.e., the branch polylines), and
+
+a label/mask of which centerline points/branches are on the desired root→target path.
+
+Where the centerlines are available
+
+For DualDeviceNav, the centerlines come from JSON and become branches:
+
+eve_bench/eve_bench/dualdevicenav.py → load_branches(...) returns a list of BranchWithRadii
+
+branch order is sorted so that:
+
+branches[0] is “main trunk” (your base aorta-like branch)
+
+branches[1:] are side branches (and also used to define target branches)
+
+Those branches are passed into:
+
+eve.intervention.vesseltree.FromMesh(..., branch_list=branches, rotate_branches=False, ...)
+
+So at runtime you have:
+
+intervention.vessel_tree.branches  # tuple/list of Branch / BranchWithRadii
+# each branch has:
+branch.coordinates  # (N_i, 3) centerline points in vessel coordinate system
+branch.name
+
+
+(Branch definition: eve/eve/intervention/vesseltree/util/branch.py)
+
+2) Defining “desired path” and which centerline points are on it
+Graph you already have (branching-point connectivity)
+
+BruteForceBFS builds:
+
+nodes = branching points (BranchingPoint)
+
+edges exist between branching points that share a “connection” branch
+
+each edge has:
+
+points: the polyline segment along the branch between those branching points
+
+length: arc length of that segment
+
+That’s created in:
+
+BruteForceBFS._initialize_node_connections(...)
+
+What’s missing for your goal
+
+For your mask “which branch is on the path”, you want the shortest path as a sequence of branches (not just nodes).
+
+Right now BPConnection stores (length, points) but not which branch produced it.
+To get a clean formulation, I’d modify it to store the branch too:
+
+and in _initialize_node_connections set branch=connection.
+
+Then after you compute the path nodes, you can recover:
+
+path branches B_path (ordered or as a set)
+
+mask per branch m_j = 1[branch_j ∈ B_path]
+
+mask per centerline point M_{j,k} = m_j (or finer if you want partial-branch masks)
+
+3) Recommended: Dijkstra for the “main route”
+
+You described Dijkstra — I agree that’s the right tool if you want path based on centerline arc length.
+
+Let branching points be nodes 
+𝑣
+v, edges 
+𝑒
+=
+(
+𝑢
+→
+𝑣
+)
+e=(u→v) with weight 
+𝑤
+(
+𝑒
+)
+=
+arc length
+w(e)=arc length.
+
+Dijkstra:
+
+𝑑
+[
+𝑠
+𝑡
+𝑎
+𝑟
+𝑡
+]
+=
+0
+d[start]=0
+
+pop min-distance node from PQ
+
+relax neighbor:
+
+𝑑
+[
+𝑣
+]
+←
+min
+⁡
+(
+𝑑
+[
+𝑣
+]
+,
+𝑑
+[
+𝑢
+]
++
+𝑤
+(
+𝑢
+,
+𝑣
+)
+)
+d[v]←min(d[v],d[u]+w(u,v))
+
+store predecessor to reconstruct the path.
+
+This gives you the true shortest-length route through the branching graph, which aligns with your “main centerline route” idea.
+
+Start node should be the root branch
+
+In DualDeviceNav, the “root/main trunk” is basically:
+
+root_branch = intervention.vessel_tree.branches[0]
+
+So for root→target path, you compute:
+
+target_branch = find_nearest_branch_to_point(target_vessel_cs, vessel_tree)
+
+then shortest route from root_branch to target_branch (via branching graph).
+
+This is a single per-episode computation (target changes per episode; vessel tree fixed).
+
+4) State encoding proposal (practical, fixed-size)
+
+You can dump all centerline points, but RL will suffer if it’s huge/variable-length.
+
+A workable fixed-size encoding:
+
+(A) Downsample each branch to M points
+
+For branch 
+𝑗
+j with polyline 
+𝐶
+𝑗
+=
+{
+𝑐
+𝑗
+,
+1
+,
+.
+.
+.
+,
+𝑐
+𝑗
+,
+𝑁
+𝑗
+}
+C
+j
+	​
+
+={c
+j,1
+	​
+
+,...,c
+j,N
+j
+	​
+
+	​
+
+}, resample it to exactly 
+𝑀
+M points along arc length:
+
+𝐶
+~
+𝑗
+∈
+𝑅
+𝑀
+×
+3
+C
+~
+j
+	​
+
+∈R
+M×3
+(B) Provide a per-branch path membership flag
+𝑚
+𝑗
+=
+1
+[
+𝑗
+∈
+𝐵
+𝑝
+𝑎
+𝑡
+ℎ
+]
+m
+j
+	​
+
+=1[j∈B
+path
+	​
+
+]
+
+Optionally also include path order:
+
+𝑜
+𝑗
+=
+{
+0
+,
+1
+,
+2
+,
+.
+.
+.
+	
+if branch 
+𝑗
+ is k-th along the route
+
+
+−
+1
+	
+otherwise
+o
+j
+	​
+
+={
+0,1,2,...
+−1
+	​
+
+if branch j is k-th along the route
+otherwise
+	​
+
+(C) Convert to the same space as your existing obs (2D)
+
+Your policy already sees:
+
+Tracking2D
+
+Target2D
+
+So I’d provide centerlines in fluoro 2D too:
+
+vessel_cs → tracking3d → 2d (same transform used everywhere)
+This makes the geometry consistent with what the agent already uses.
+
+Final centerline-state tensor
+
+centerlines_points2d: shape (B, M, 2)
+
+centerlines_mask: shape (B, 1) (or (B, M, 1))
+
+Then add it as a new key in ObsDict in:
+
+training_scripts/util/env.py
+
+5) Reward shaping you asked for
+
+You want reward based on:
+
+“how much guidewire is inserted in the main base trunk centerline”
+
+“how close it is to remaining centerlines that are part of the path to target”
+
+implicitly: discourage drifting into off-path branches
+
+Let:
+
+𝑝
+𝑡
+p
+t
+	​
+
+ = guidewire tip position in vessel coordinate system (or tracking3d, but keep consistent)
+
+root branch centerline points = 
+𝐶
+0
+C
+0
+	​
+
+
+path centerline set:
+
+𝐶
+path
+=
+⋃
+𝑗
+∈
+𝐵
+path
+𝐶
+𝑗
+C
+path
+	​
+
+=
+j∈B
+path
+	​
+
+⋃
+	​
+
+C
+j
+	​
+
+
+off-path set:
+
+𝐶
+off
+=
+⋃
+𝑗
+∉
+𝐵
+path
+𝐶
+𝑗
+C
+off
+	​
+
+=
+j∈
+/
+B
+path
+	​
+
+⋃
+	​
+
+C
+j
+	​
+
+Term 1: Main trunk insertion progress
+
+Define progress along root branch by projecting to nearest centerline index:
+
+𝑘
+∗
+(
+𝑡
+)
+=
+arg
+⁡
+min
+⁡
+𝑘
+∥
+𝑝
+𝑡
+−
+𝑐
+0
+,
+𝑘
+∥
+k
+∗
+(t)=arg
+k
+min
+	​
+
+∥p
+t
+	​
+
+−c
+0,k
+	​
+
+∥
+
+Define arc-length coordinate 
+𝑠
+0
+(
+𝑘
+)
+s
+0
+	​
+
+(k) precomputed along the polyline.
+
+𝑠
+root
+(
+𝑡
+)
+=
+𝑠
+0
+(
+𝑘
+∗
+(
+𝑡
+)
+)
+s
+root
+	​
+
+(t)=s
+0
+	​
+
+(k
+∗
+(t))
+
+Reward incremental progress:
+
+𝑟
+root
+(
+𝑡
+)
+=
+𝑤
+root
+⋅
+(
+𝑠
+root
+(
+𝑡
+)
+−
+𝑠
+root
+(
+𝑡
+−
+1
+)
+)
+⋅
+1
+[
+still on root
+]
+r
+root
+	​
+
+(t)=w
+root
+	​
+
+⋅(s
+root
+	​
+
+(t)−s
+root
+	​
+
+(t−1))⋅1[still on root]
+
+“still on root” can be approximated by:
+
+nearest branch to 
+𝑝
+𝑡
+p
+t
+	​
+
+ equals branches[0] (using find_nearest_branch_to_point)
+
+This directly rewards “inserting along the main base centerline”.
+
+Term 2: Closeness / adherence to the correct route centerlines
+
+Distance to the desired route:
+
+𝑑
+path
+(
+𝑡
+)
+=
+min
+⁡
+𝑐
+∈
+𝐶
+path
+∥
+𝑝
+𝑡
+−
+𝑐
+∥
+d
+path
+	​
+
+(t)=
+c∈C
+path
+	​
+
+min
+	​
+
+∥p
+t
+	​
+
+−c∥
+
+Use delta shaping (more stable than absolute):
+
+𝑟
+path
+(
+𝑡
+)
+=
+𝑤
+path
+⋅
+(
+𝑑
+path
+(
+𝑡
+−
+1
+)
+−
+𝑑
+path
+(
+𝑡
+)
+)
+r
+path
+	​
+
+(t)=w
+path
+	​
+
+⋅(d
+path
+	​
+
+(t−1)−d
+path
+	​
+
+(t))
+
+Positive when you move closer to the route centerlines.
+
+Term 3: Penalty for being in the wrong branch
+
+Let 
+𝑏
+∗
+(
+𝑡
+)
+b
+∗
+(t) = nearest branch to 
+𝑝
+𝑡
+p
+t
+	​
+
+. Penalize if it’s not on the path:
+
+𝑟
+off
+(
+𝑡
+)
+=
+−
+𝑤
+off
+⋅
+1
+[
+𝑏
+∗
+(
+𝑡
+)
+∉
+𝐵
+path
+]
+r
+off
+	​
+
+(t)=−w
+off
+	​
+
+⋅1[b
+∗
+(t)∈
+/
+B
+path
+	​
+
+]
+
+You can optionally gate it so you only penalize once you’re sufficiently inserted / near a branching region.
+
+Put it together
+
+Your new reward could be:
+
+𝑟
+(
+𝑡
+)
+=
+𝑟
+existing
+(
+𝑡
+)
++
+𝑟
+root
+(
+𝑡
+)
++
+𝑟
+path
+(
+𝑡
+)
++
+𝑟
+off
+(
+𝑡
+)
+r(t)=r
+existing
+	​
+
+(t)+r
+root
+	​
+
+(t)+r
+path
+	​
+
+(t)+r
+off
+	​
+
+(t)
+
+where 
+𝑟
+existing
+r
+existing
+	​
+
+ is your current combination:
+
+TargetReached
+
+PathLengthDelta
+
+Step
+
+6) Where you actually implement this in your repo
+Add centerlines to state
+
+Edit: training_scripts/util/env.py
+Add a new Observation instance into ObsDict({...}).
+
+You’ll likely create a new file:
+
+eve/eve/observation/centerlines2d.py (new)
+that:
+
+reads intervention.vessel_tree.branches
+
+downsamples to fixed (B,M,2)
+
+computes B_path / mask at reset (based on target)
+
+Add reward shaping
+
+Add a new reward class, e.g.:
+
+eve/eve/reward/centerlineprogress.py (new)
+
+Then include it in the Combination([...]) in training_scripts/util/env.py.
+
+Upgrade BFS→Dijkstra (optional but recommended for your goal)
+
+Modify: eve/eve/pathfinder/bruteforcebfs.py
+
+store branch identity in BPConnection
+
+implement weighted shortest path for root→target route extraction
+
+(you can keep the existing pathfinder for PathLengthDelta, and also compute a “root-route” once per episode for your mask + root reward)

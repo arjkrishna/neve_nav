@@ -1,0 +1,220 @@
+Yes — what you’re proposing is a *very* sensible fix: you’re turning a **high-variance, context-dependent scalar** (PathLengthDelta) into a **structured, low-variance progress signal** tied to the actual shortest-path centerline sequence.
+
+Below is a concrete formulation that satisfies your 3 requirements and maps cleanly onto the stEVE code structure (`BenchEnv`, `BruteForceBFS`, `Branch.coordinates`, etc.).
+
+---
+
+# 1) Put centerlines + “on-shortest-path” labels into the state
+
+## What you already have in code
+
+* Vessel centerlines are in `vessel_tree.branches`, each `Branch.coordinates` is a polyline (centerline points) in **vessel coordinate system**.
+* The shortest path polyline is already computed every step by the pathfinder:
+
+  * `pathfinder.path_points3d` (in tracking3D)
+  * internally it constructs the path from `Branch.get_path_along_branch(...)` (so the path lies on the vessel centerlines).
+
+## What to add to observation (recommended structure)
+
+To keep the observation fixed-size (your SAC code flattens obs), use **padding + masks**.
+
+### Per-branch centerline points (all centerlines)
+
+For each branch (b \in {1..B}):
+
+* resampled centerline points (2D or 3D):
+  [
+  C_b \in \mathbb{R}^{N_{\max}\times D}\quad (D=2\text{ or }3)
+  ]
+* mask for valid points:
+  [
+  M_b \in {0,1}^{N_{\max}}
+  ]
+
+### “On-shortest-path” indicators
+
+You want both:
+
+* branch-level: is branch used in current shortest path?
+  [
+  \text{on_path_branch}[b] \in {0,1}
+  ]
+* point-level: which centerline points are on the desired path (optional but doable):
+  [
+  \text{on_path_point}[b,i] \in {0,1}
+  ]
+
+#### How to compute `on_path_branch` robustly
+
+At reset (and whenever target changes), you already have the shortest path polyline (P) from the pathfinder (the “main desired path to target”).
+Map each path point to its nearest branch:
+
+* convert `path_points3d` → vessel_cs (same transform the pathfinder uses)
+* for each point (p\in P), compute `find_nearest_branch_to_point(p, vessel_tree)`
+* mark that branch as on-path
+
+This avoids needing to rewrite pathfinder internals.
+
+---
+
+# 2) Dynamic number of points per centerline (2–4 forward actions per point)
+
+In your environment, translation per step is approximately:
+[
+\Delta x \approx v_{\text{trans}}\cdot \Delta t
+]
+where in code:
+
+* (\Delta t = 1/\text{fluoroscopy.image_frequency})
+* (v_{\text{trans}}) is bounded by `device.velocity_limit[:,0]` (translation component)
+
+Define a “standard forward action” speed (v_{\text{std}}) (pick something like 60–80% of max guidewire translation limit, or literally max if that’s your policy’s usual forward).
+
+Then choose waypoint spacing:
+[
+d = k \cdot (v_{\text{std}}\Delta t), \quad k \in [2,4]
+]
+Practical choice: **k = 3** (your “2–4 steps per point” sweet spot).
+
+### Resampling each centerline dynamically by arc-length
+
+For each branch polyline (C_b) with length (L_b):
+[
+N_b = \left\lceil \frac{L_b}{d} \right\rceil + 1
+]
+Resample points at uniform arc-length increments (0, d, 2d, \dots) via interpolation on cumulative-length.
+
+Then **pad** to (N_{\max} = \max_b N_b) (constant for a fixed vessel tree) and provide masks.
+
+This matches your requirement: longer branches get more points; shorter branches fewer.
+
+---
+
+# 3) New reward: waypoint-passing on the shortest-path centerline with branch “jumps”
+
+You want:
+
+* **positive reward** when progressing to the next waypoint on the desired path
+* **increasing reward within a branch**
+* **big jump when entering the next branch**
+* **target reward = 1**
+* no path-length delta / insertion length needed
+
+The cleanest way to do this without reward explosions is to use a **potential function** over waypoint index.
+
+## Step A: Build the “desired path waypoint list”
+
+At episode reset:
+
+1. get the current shortest-path polyline (P) (in vessel_cs or tracking3D, just be consistent with tip coords)
+2. resample (P) into waypoints with the same spacing (d):
+   [
+   W = {w_0, w_1, ..., w_{K-1}}
+   ]
+3. assign each waypoint to a branch id (nearest-branch mapping)
+4. segment the waypoint list into consecutive branch runs:
+   [
+   (b_1: i=a_1..c_1), (b_2: i=a_2..c_2), ...
+   ]
+
+## Step B: Define a per-waypoint *progress score* (\phi(i))
+
+You described values like:
+
+* branch 1: 0.10, 0.13, 0.16, …
+* branch 2: 0.20, 0.24, …
+
+That’s naturally:
+
+* a **branch base** plus an **in-branch ramp**.
+
+Let branch segment index be (j \in {1..M}), and waypoint’s position within that branch segment be (u \in [0,1]).
+
+Define:
+[
+\phi(i) = B_j + (B_{j+1}-B_j-\epsilon)\cdot u
+]
+where:
+
+* (B_j) is the “base” score for entering branch (j)
+* (u = \frac{k}{N_j-1}) for the k-th waypoint in that branch segment
+* (\epsilon) is tiny so the next branch has a visible jump
+
+**To match your numeric style**, choose:
+[
+B_j = 0.1\cdot j \quad \text{(then rescale if needed)}
+]
+If (M) branches could exceed 9, you can instead normalize to keep (\phi) bounded:
+[
+B_j = 0.9 \cdot \frac{j-1}{M-1}
+]
+and keep the terminal reward separate as +1.
+
+## Step C: Track “current progress index” and reward only when it advances
+
+Maintain (i^*) = best waypoint index reached so far.
+
+At each step:
+
+1. compute the tip position (x_t)
+2. compute the nearest waypoint index:
+   [
+   \hat{i} = \arg\min_i |x_t - w_i|
+   ]
+3. **monotonic progress rule**:
+   [
+   i_t = \max(i^*, \hat{i})
+   ]
+   (optional: only allow advancing if within a radius threshold of the next waypoint)
+4. reward:
+   [
+   r_t = \max(0,\ \phi(i_t)-\phi(i^*))
+   ]
+5. update (i^* \leftarrow i_t)
+
+This yields exactly what you want:
+
+* passing points gives positive reward
+* later points give higher (\phi)
+* branch change yields a jump (via (B_{j+1}-B_j))
+* no need for path-length deltas
+
+Then keep:
+
+* `TargetReached(factor=1.0)` as-is, so **target reward = 1**.
+
+### Optional (but very helpful): penalize leaving the desired path branches
+
+Since you explicitly want “guidewire inserted in main aorta centerline” and “close to remaining path centerlines,” add a small penalty if the tip’s nearest branch is not on-path:
+[
+r_{\text{offpath}} =
+\begin{cases}
+0 & \text{if nearest branch is on path}\
+-\lambda & \text{otherwise}
+\end{cases}
+]
+This is far less noisy than PathLengthDelta and directly enforces “stay on the planned route.”
+
+---
+
+# Where this plugs into your repo
+
+### Replace reward in `training_scripts/util/env.py`
+
+Currently:
+
+* `path_delta = PathLengthDelta(pathfinder, 0.001)`
+* `reward = Combination([target_reward, path_delta, step_reward])`
+
+You would replace `path_delta` with something like:
+
+* `CenterlineWaypointProgress(pathfinder, vessel_tree, spacing=d, ...)`
+  and keep `step_reward` if you want urgency.
+
+### Add an observation module
+
+Add a new observation in `eve/observation/...` that outputs padded centerline points + on-path masks, then include it inside the `ObsDict`.
+
+---
+
+If you want, I can do the next step very concretely: **identify the exact functions/classes to edit and give you the exact new classes you need** (a new `Reward` subclass and a new `Observation` subclass), written to match this repo’s style and interfaces.

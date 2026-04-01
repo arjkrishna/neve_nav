@@ -1,0 +1,8 @@
+﻿docker : Error response from daemon: No such container: 2ae7188e70af
+At line:1 char:1
++ docker logs 2ae7188e70af 2>&1 | Out-File -FilePath "docker_log_full.t ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error response ...r: 2ae7188e70af:String) [], Rem 
+   oteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

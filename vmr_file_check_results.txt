@@ -1,0 +1,198 @@
+VMR Models File Check Results
+================================================================================
+
+Total models: 50
+Ready for processing: 44
+
+READY MODELS:
+--------------------------------------------------------------------------------
+0001_H_AO_SVD                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0063_1001.vtp, 0063_1001.vtp
+  PTH files: Aorta.pth, BiachioA.pth, BiachioA_RCCA.pth, LCCA.pth, LSA.pth
+
+0002_H_AO_SVD                  | VTP: 2 files | PTH: 6 files
+  VTP files: 0064_1001.vtp, 0064_1001.vtp
+  PTH files: aorta.pth, aorta2.pth, aorta2_br1.pth, aorta2_br2.pth, aorta2_br2_br.pth, left_subclavian.pth
+
+0003_H_AO_SVD                  | VTP: 2 files | PTH: 6 files
+  VTP files: 0065_1001.vtp, 0065_1001.vtp
+  PTH files: aorta.pth, aorta2_v2.pth, BrachioA.pth, BrachioA_2.pth, LCCA.pth, LSA.pth
+
+0004_H_AO_SVD                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0075_1001.vtp, 0075_1001.vtp
+  PTH files: aorta.pth, btrunk.pth, Lt-carotid.pth, rt-carotid.pth, subclavian.pth
+
+0005_H_AO_SVD                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0076_1001.vtp, 0076_1001.vtp
+  PTH files: aorta.pth, btrunk.pth, Lt-carotid.pth, rt_carotid_aj.pth, subclavian.pth
+
+0006_H_AO_SVD                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0077_1001.vtp, 0077_1001.vtp
+  PTH files: aorta.pth, brunk.pth, LCCA.pth, LSA.pth, RSA.pth
+
+0007_H_AO_H                    | VTP: 2 files | PTH: 5 files
+  VTP files: 0090_0001.vtp, 0090_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0008_H_AO_H                    | VTP: 2 files | PTH: 5 files
+  VTP files: 0091_0001.vtp, 0091_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0009_H_AO_H                    | VTP: 2 files | PTH: 5 files
+  VTP files: 0092_0001.vtp, 0092_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0010_H_AO_H                    | VTP: 2 files | PTH: 5 files
+  VTP files: 0093_0001.vtp, 0093_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0011_H_AO_H                    | VTP: 2 files | PTH: 5 files
+  VTP files: 0094_0001.vtp, 0094_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0012_H_AO_H                    | VTP: 2 files | PTH: 4 files
+  VTP files: 0095_0001.vtp, 0095_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, subclavian.pth
+
+0013_H_AO_COA                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0101_0001.vtp, 0101_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0014_H_AO_COA                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0102_0001.vtp, 0102_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0015_H_AO_COA                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0103_0001.vtp, 0103_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0016_H_AO_COA                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0104_0001.vtp, 0104_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0017_H_AO_COA                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0105_0001.vtp, 0105_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0018_H_AO_COA                  | VTP: 2 files | PTH: 8 files
+  VTP files: 0106_0001.vtp, 0106_0001.vtp
+  PTH files: Ao_surgical.pth, btrunk.pth, carotid.pth, lt_collat_smooth.pth, rt_carotid.pth, rt_collateral_smooth.pth, subclavian.pth, vertebral.pth
+
+0019_H_AO_COA                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0107_0001.vtp, 0107_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0020_H_AO_COA                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0111_0001.vtp, 0111_0001.vtp
+  PTH files: aorta.pth, btrunk.pth, carotid.pth, rt_carotid.pth, subclavian.pth
+
+0021_H_AO_MFS                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0129_0000.vtp, 0129_0000.vtp
+  PTH files: aorta.pth, LCCA.pth, LSA.pth, RCCA.pth, RSA.pth
+
+0022_H_AO_MFS                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0130_0000.vtp, 0130_0000.vtp
+  PTH files: aorta.pth, LCCA.pth, LSA.pth, RCCA.pth, RSA.pth
+
+0023_H_AO_MFS                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0131_0000.vtp, 0131_0000.vtp
+  PTH files: aorta.pth, LCCA.pth, LSA.pth, RCCA.pth, RSA.pth
+
+0024_H_AO_H                    | VTP: 2 files | PTH: 5 files
+  VTP files: 0154_0001.vtp, 0154_0001.vtp
+  PTH files: Aorta.pth, LCCA.pth, LSA.pth, RCCA.pth, RSA.pth
+
+0025_H_AO_MFS                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0174_0000.vtp, 0174_0000.vtp
+  PTH files: aorta.pth, LCCA.pth, LSA.pth, RCCA.pth, RSA.pth
+
+0026_H_AO_MFS                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0175_0000.vtp, 0175_0000.vtp
+  PTH files: aorta.pth, LCCA.pth, LSA.pth, RCCA.pth, RSA.pth
+
+0027_H_AO_MFS                  | VTP: 2 files | PTH: 5 files
+  VTP files: 0176_0000.vtp, 0176_0000.vtp
+  PTH files: aorta.pth, LCCA.pth, LSA.pth, RCCA.pth, RSA.pth
+
+0225_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P001_withsphererefine.vtp, P001.vtp
+  PTH files: aorta.pth, bct.pth, left_carotid.pth, left_subclavian.pth
+
+0226_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P006_withsphererefine.vtp, P006.vtp
+  PTH files: aorta.pth, bct.pth, left_carotid.pth, left_subclavian.pth
+
+0227_H_AO_COA                  | VTP: 2 files | PTH: 3 files
+  VTP files: P007_withsphererefine.vtp, P007.vtp
+  PTH files: aorta.pth, bct.pth, lca.pth
+
+0228_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P008_withsphere.vtp, P008.vtp
+  PTH files: aorta.pth, bct.pth, lca.pth, lsa.pth
+
+0229_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P009_sphererefine.vtp, P009.vtp
+  PTH files: aorta.pth, bct.pth, lca.pth, lsa.pth
+
+0230_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P016.vtp, P016.vtp
+  PTH files: aorta.pth, lt_car.pth, lt_sub.pth, rt_sub.pth
+
+0231_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P018.vtp, P018.vtp
+  PTH files: aorta.pth, lt_car.pth, lt_sub.pth, rt_brach.pth
+
+0232_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P021.vtp, P021.vtp
+  PTH files: aorta.pth, lt_carotid.pth, lt_sub.pth, rt_brach.pth
+
+0233_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P015.vtp, P015.vtp
+  PTH files: aorta.pth, lt_car.pth, lt_sub.pth, rt_sub.pth
+
+0234_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P003_finersphere.vtp, P003.vtp
+  PTH files: aorta.pth, bct.pth, left_carotid.pth, left_subclavian.pth
+
+0235_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P004_withsphererefine.vtp, P004.vtp
+  PTH files: aorta.pth, bct.pth, lca.pth, lsa.pth
+
+0236_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P013.vtp, P013.vtp
+  PTH files: aorta.pth, lt_car.pth, lt_sub.pth, rt_brach.pth
+
+0237_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P005_withsphererefine.vtp, P005.vtp
+  PTH files: aorta.pth, bct.pth, lca.pth, lsa.pth
+
+0238_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P011.vtp, P011.vtp
+  PTH files: aorta.pth, lt_car.pth, lt_sub.pth, rt_brach.pth
+
+0239_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P022.vtp, P022.vtp
+  PTH files: aorta.pth, lt_carotid.pth, lt_sub.pth, rt_brach.pth
+
+0240_H_AO_COA                  | VTP: 2 files | PTH: 4 files
+  VTP files: P014.vtp, P014.vtp
+  PTH files: aorta.pth, lt_car.pth, lt_sub.pth, rt_sub.pth
+
+0241_H_AO_COA                  | VTP: 2 files | PTH: 5 files
+  VTP files: P002_withsphererefine.vtp, P002.vtp
+  PTH files: aorta.pth, bct.pth, left_carotid.pth, left_subclavian.pth, lsa.pth
+
+
+
+VTP ONLY (no PTH):
+--------------------------------------------------------------------------------
+0160_H_AO_AOD                  | VTP: 2 files
+
+
+MISSING BOTH:
+--------------------------------------------------------------------------------
+0221_H_AO_AOD
+0222_H_AO_AOD
+0223_H_AO_AOD
+0224_H_AO_AOD
+0246_A_AO_AOD
