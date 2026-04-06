@@ -14,6 +14,7 @@ Usage:
 """
 
 import numpy as np
+from typing import Optional
 
 from eve.util.coordtransform import tracking3d_to_vessel_cs
 from eve.util.polyline import (
@@ -74,7 +75,7 @@ class CenterlineFollowerHeuristic:
         self._total_length = float(self._cumlen[-1])
         self._tangents = compute_segment_tangents(self._polyline)
 
-    def get_action(self, rng: np.random.Generator | None = None) -> np.ndarray:
+    def get_action(self, rng: "Optional[np.random.Generator]" = None) -> np.ndarray:
         """Compute a heuristic action for the current state.
 
         Translation: proportional to remaining distance, capped at max_translation.
