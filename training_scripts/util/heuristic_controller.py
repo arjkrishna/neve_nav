@@ -102,9 +102,8 @@ class CenterlineFollowerHeuristic:
 
         d_rem = self._total_length - proj.s
 
-        # ---- Translation: proportional to remaining distance, capped ----
-        gw_trans = min(self.max_translation, d_rem * 0.1)
-        gw_trans = max(gw_trans, 5.0)  # minimum forward push
+        # ---- Translation: proportional to remaining distance, no forced floor ----
+        gw_trans = min(self.max_translation, max(0.0, 0.1 * d_rem))
 
         # ---- Rotation: align with tangent + correct cross-track error ----
         seg_idx = min(proj.segment_idx, len(self._tangents) - 1)
@@ -138,6 +137,10 @@ class CenterlineFollowerHeuristic:
         gw_rot = -self.heading_kp * heading_error - self.crosstrack_kp * cross_track_signed
         gw_rot = float(np.clip(gw_rot, -np.pi, np.pi))
 
+        # ---- Reduce rotation cap near target ----
+        if d_rem <= 50.0:
+            gw_rot = float(np.clip(gw_rot, -0.8, 0.8))
+
         # ---- Add noise for trajectory diversity ----
         gw_trans += rng.normal(0, abs(gw_trans) * self.noise_std_frac)
         gw_rot += rng.normal(0, max(abs(gw_rot), 0.1) * self.noise_std_frac)
@@ -146,5 +149,20 @@ class CenterlineFollowerHeuristic:
         # ---- Catheter follows guidewire ----
         cath_trans = gw_trans * self.catheter_follow_ratio
         cath_rot = 0.0
+
+        # ---- Device-length-aware cap ----
+        # Prevents commanding impossible insertion near device max length.
+        try:
+            inserted_lengths = self.intervention.device_lengths_inserted
+            max_lengths = self.intervention.device_lengths_maximum
+            dt = 1.0 / self.intervention.fluoroscopy.image_frequency
+
+            gw_remaining = max_lengths[0] - inserted_lengths[0]
+            cath_remaining = max_lengths[1] - inserted_lengths[1]
+
+            gw_trans = min(gw_trans, max(0.0, (gw_remaining - 1.0) / dt))
+            cath_trans = min(cath_trans, max(0.0, (cath_remaining - 1.0) / dt))
+        except Exception:
+            pass  # Graceful fallback if properties unavailable
 
         return np.array([gw_trans, gw_rot, cath_trans, cath_rot], dtype=np.float32)

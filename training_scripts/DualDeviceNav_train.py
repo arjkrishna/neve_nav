@@ -26,18 +26,19 @@ TARGET_BRANCHES = [
 ]
 
 
-def build_episode_schedule(n_episodes, branches, base_seed=42):
+def build_episode_schedule(n_episodes, branches, base_seed=42, heuristic_mode=False):
     """Build a branch-balanced, reproducibly-shuffled episode schedule.
 
-    Returns a list of (seed, {"target_branch": branch}) tuples where
-    branches are assigned round-robin so each branch gets exactly
-    n_episodes // len(branches) episodes (plus remainder distributed
-    across the first branches).
+    Returns a list of (seed, options) tuples where branches are assigned
+    round-robin so each branch gets exactly n_episodes // len(branches)
+    episodes (plus remainder distributed across the first branches).
 
     Args:
         n_episodes: Total number of episodes to schedule.
         branches: List of target branch names.
         base_seed: Base seed for reproducible seed generation.
+        heuristic_mode: If True, add heuristic_mode=True to options
+            (enables env-side abort detectors during heuristic seeding).
 
     Returns:
         List of (seed, options) tuples, one per episode.
@@ -47,7 +48,10 @@ def build_episode_schedule(n_episodes, branches, base_seed=42):
     for i in range(n_episodes):
         ep_seed = int(rng.integers(0, 2**31))
         branch = branches[i % len(branches)]
-        schedule.append((ep_seed, {"target_branch": branch}))
+        options = {"target_branch": branch}
+        if heuristic_mode:
+            options["heuristic_mode"] = True
+        schedule.append((ep_seed, options))
     # Shuffle to avoid workers getting only one branch each,
     # but deterministically so runs are reproducible.
     rng.shuffle(schedule)
@@ -421,7 +425,7 @@ if __name__ == "__main__":
                     break
 
                 schedule = build_episode_schedule(
-                    batch_size, TARGET_BRANCHES, base_seed=42 + seed_offset
+                    batch_size, TARGET_BRANCHES, base_seed=42 + seed_offset, heuristic_mode=True
                 )
                 seed_offset += batch_size
 
